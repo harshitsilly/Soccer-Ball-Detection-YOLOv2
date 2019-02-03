@@ -185,6 +185,35 @@ def getTFjsModel():
 def getshardFile(shard):
     return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/kerasYoloV2/" + shard))
 
+@app.route("/setYoloType",methods=['Post'])
+def setYoloType():
+    global tfnet2
+    isYoloTiny= request.form['yoloTiny']
+    if isYoloTiny=='X':
+        with open("ckpt/checkpoint",'w') as fp:
+            fp.writelines(['model_checkpoint_path: "yolo_tiny-25750"\n','all_model_checkpoint_paths: "yolo_tiny-25750"'])
+
+        options = {"model": "cfg/yolo_tiny.cfg",
+               "load": -1,
+
+               "gpu": 0}
+        model = "yoloV2"       
+        
+    else:
+        with open("ckpt/checkpoint",'w') as fp:
+            fp.writelines(['model_checkpoint_path: "yolo_custom-18750"\n','all_model_checkpoint_paths: "yolo_custom-18750"'])
+        options = {"model": "cfg/yolo_custom.cfg",
+               "load": -1,
+
+               "gpu": 0}
+        model = "yoloTinyV2"   
+
+    tfnet = TFNet(options)
+   
+    tfnet2 = tfnet
+    return "Yolo {} sucessfully setted".format(model)
+
+
 
 #server initialization
 if __name__ == "__main__":
@@ -192,7 +221,8 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000)) 
     # app.run(host="0.0.0.0",port=port) #run app in debug mode on port 5000
     # app.run(port=port)
-    
+    with open("ckpt/checkpoint",'w') as fp:
+            fp.writelines(['model_checkpoint_path: "yolo_custom-18750"\n','all_model_checkpoint_paths: "yolo_custom-18750"'])
     # options = {"model": "cfg/yolo_custom.cfg",
     #         "load": -1,
     #         "gpu": 0}
