@@ -7,18 +7,19 @@ import sys
 
 afiles=[]
 if len(sys.argv)>=2:
-    annotationFilePath = sys.argv[1]
+    imageFilePath = sys.argv[1]
+    annotationFilePath = sys.argv[2]
     try:
-        os.listdir(annotationFilePath)
+        os.listdir(imageFilePath)
     except Exception as e:
        
-        print(annotationFilePath + " not found")
+        print(imageFilePath + " not found")
 else:
     print("Provide arguments in correct order of annotationDirectory, imageDirectory,darFlowAnnotation directory")
-annotationFiles = os.listdir(annotationFilePath)
+imageFiles = os.listdir(imageFilePath)
 
-for annotationFile in annotationFiles:
-    with open(annotationFilePath + annotationFile, 'r+') as fp:
+for imageFile in imageFiles:
+    with open(annotationFilePath + imageFile, 'r+') as fp:
         data = json.load(fp)
         data["description"] = annotationFile.split(".json")[0]
         fp.seek(0)  # rewind

@@ -12,7 +12,7 @@ from io import BytesIO
 import pytesseract
 
 app = Flask(__name__)
-
+img1 = None
 # this function is used to create boundary box across the detected object
 def boxing(original_img , predictions):
     newImage = np.copy(original_img)
@@ -67,7 +67,7 @@ def processLicensePlateImage():
 # post call for detecting licenseplate number
 @app.route('/getLPBBImage', methods=['POST'])
 def getLPBBImage():
-    global tfnet2
+    global tfnet2,img1
     imageFile = request.files['file']
     img1 = Image.open(imageFile)
     frame = np.asarray(img1)
@@ -79,6 +79,14 @@ def getLPBBImage():
     img_io.seek(0)
     return send_file(img_io,mimetype='image/jpeg')
 
+@app.route('/rejectLpImage',methods=['GET'])
+def rejectLpImage():
+    global img1
+    rejectedimagesFolder = "Rejected Images"
+    rejectImagePath = os.path.join("{}/{}.jpg".format(rejectedimagesFolder,len(os.listdir(rejectedimagesFolder))))
+    img1.save(rejectImagePath,"JPEG")
+    app.logger.info("image successfully saved")
+    return "image successfully saved"
 
 @app.route('/getPredictedText', methods=['POST'])
 def getLPPredictedText():
@@ -211,8 +219,57 @@ def setYoloType():
     tfnet = TFNet(options)
    
     tfnet2 = tfnet
+    app.logger.info('Yolo {} sucessfully setted'.format(model))
     return "Yolo {} sucessfully setted".format(model)
 
+#Datset upload functionality
+#upload Dataset zip file
+@app.route("/uploadDataset",methods=['Post'])
+def uploadDataset():
+    zipfile = request.files['file']
+    directory_to_extract_to = "Build/Dataset/{}.zip".format(len(os.listdir("Build/Dataset")))
+    zipfile.save(directory_to_extract_to)
+    app.logger.info('%s ZipFile successfully uploaded')
+    return "ZipFile successfully uploaded"
+
+
+
+#Dataset Checker -  annImageShapeCheck.py
+#utility checket - annImgCheck.py
+
+
+
+# model build functionality 
+# if images zip not given the model will use the files placed in Voc_pascal Dataset
+@app.route("/trainYoloModel",methods=['Post'])
+def trainYoloModel():
+    config = request.form["config"] if "config" in request.form.keys() else None
+    zipFile = request.files['file'] if "file" in request.form.keys() else None
+    Zipfileused ="Last Uploaded {}.zip".format(len(os.listdir("Build/Dataset")))
+    options = {"model": "cfg/yolo_custom.cfg", 
+           "load": "yolo.weights",
+           "batch": config["batch"] if config  else 8,
+           "epoch": config["epoch"] if config  else 100,
+           "gpu": config["gpu"] if config  else 0,
+           "train": True,
+           "annotation": "Build/Dataset/{}/ann".format(config[Dataset] if config else len(os.listdir("Build/Dataset")) ),
+           "dataset": "Build/Dataset/{}/img".format(config[Dataset] if config else len(os.listdir("Build/Dataset")))}
+    if zipFile:
+        # default directory
+        Zipfileused = "User"
+        directory_to_extract_to = "Build/Dataset/{}/".format(len(os.listdir("Build/Dataset")))
+        zip_ref = ZipFile.zipFile(zipFile, 'r')
+        zip_ref.extractall(directory_to_extract_to)
+        zip_ref.close()
+        options["annotation"] = "{}/ann".format(directory_to_extract_to)
+        options["dataset"] = "{}/img".format(directory_to_extract_to)
+    #tf model has to be trained on a separate python file
+    tfnet = TFNet(options)
+    tfnet.train()
+    app.logger.info('%s Model successfully sttarted. {} zipfile is uded for training'.format(Zipfileused))
+    return "Model successfully sttarted. {} zipfile is used for training".format(Zipfileused)
+    
+    
 
 
 #server initialization
@@ -244,7 +301,7 @@ if __name__ == "__main__":
     # tfnet1 = TFNet(options1)
     tfnet2 = tfnet
     from ocr_model import decode_batch,getOCRModel,getImageData
-    app.run(host='localhost', port=port)
+    app.run(debug=False,host='localhost', port=port)
         
         
 
