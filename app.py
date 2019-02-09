@@ -7,10 +7,13 @@ from darkflow.net.build import TFNet
 import cv2
 import os,sys
 from zipfile import ZipFile
+import zipfile as zf
 from io import BytesIO
 # app logging
 from subprocess import Popen, PIPE
 import logging
+import time
+
 
 
 
@@ -194,9 +197,23 @@ def processLicensePlateZip():
 def getTFjsModel():
     return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/kerasYoloV2/model.json"))
 
+@app.route('/getProcessingtime',methods=['Get'])
+def getProcessingtime():
+    global tfnet2
+    original_img = cv2.imread(os.path.join(os.getcwd() +"/scImages/new dataset/Hyundai-elite-i20-vs-i20-Active-Comparison-test-e1465889837605.jpg"))
+    original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
+    t0 = time.time()
+    results = tfnet2.return_predict(original_img)
+    t1 = time.time()
+    total = t1-t0
+    return str(total)
+
+    
 @app.route('/<shard>', methods=['Get'])
 def getshardFile(shard):
     return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/kerasYoloV2/" + shard))
+
+
 
 @app.route("/setYoloType",methods=['Post'])
 def setYoloType():
@@ -247,6 +264,23 @@ def getLogs():
         text = fp.read()
     return text
 
+@app.route("/getRejectedImageZip",methods=['Get'])
+def getRejectedImageZip():
+    # filename = os.path.join(os.getcwd() + "/" + 'RejectImages.zip')
+    # zipf = zipfile(filename, 'w', zipfile.ZIP_DEFLATED)
+    rejectedFolderlist  =  os.listdir(os.path.join(os.getcwd() + "/Rejected Images"))
+    zipData = BytesIO()
+    zipf = ZipFile(zipData, 'w', zf.ZIP_DEFLATED)
+    for file in rejectedFolderlist:
+        if file != "" :
+            fileName = file
+            zipf.write(os.path.join(os.getcwd() + "/Rejected Images/")  + file,fileName)
+    return send_file(zipData,mimetype="application/zip")
+                # zipf.seek(0)
+    # file.write("")
+    # thread_a = Compute('RejectImages.zip')
+    # thread_a.start()
+    
 
 # model build functionality 
 # if images zip not given the model will use the files placed in Voc_pascal Dataset
@@ -295,11 +329,14 @@ if __name__ == "__main__":
 
 
 
+    # options = {"model": "cfg/yolo_custom.cfg",
+    #            "load": -1,
+
+    #            "gpu": 0}
     options = {"model": "cfg/yolo_custom.cfg",
-               "load": -1,
-
-               "gpu": 0}
-
+               "pbLoad" : "built_graph/yolo_custom.pb"  ,
+               "metaLoad": "built_graph/yolo_custom.meta" ,
+             "gpu": 0}
    
 
     if len(sys.argv)>=2:

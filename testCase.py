@@ -131,7 +131,7 @@ def calculateParameters(ModelIou):
         iou = ModelIou[i]["iou"]
         confidence = ModelIou[i]["confidence"]
         if predictedbbox[0] and bbox[0]:
-            if iou > 0.4 and confidence > 0.2:
+            if iou > 0.4 and confidence > 0.1:
                 tp = tp + 1
             else:
                 fn = fn + 1
@@ -182,7 +182,7 @@ def checkIouPercentage(newModelIou,oldModelIou):
 if len(sys.argv)>=1:
     if not os.listdir("ckpt"):
         os.mkdir("ckpt")
-    iRange = 30
+    iRange = 800
     iolessthan50Path = "Build/Iou50/"
     validationDataset = "Build/Validation/"
     #confidenceThresold = 0.3
