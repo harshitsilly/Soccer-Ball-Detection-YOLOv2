@@ -61,17 +61,17 @@ def boxing(original_img, bbox,predictedbbox,iou):
 
 def plot(iou):
     global iRange
-    ncols=2
-    fig, ax = plt.subplots(nrows= int(iRange/ncols), ncols=2, figsize=(50, 50))
+    # ncols=2
+    # fig, ax = plt.subplots(nrows= int(iRange/ncols), ncols=2, figsize=(50, 50))
     i = 0
     for imageObject in iou:
         original_img = cv2.imread(imageObject["imgpath"])
         original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
-        
-        fig.colorbar(ax[ceil(i/ncols)-1, i%ncols].imshow(boxing(original_img, imageObject["bbox"],imageObject["predictedbbox"],imageObject["iou"])))
+        boxing(original_img, imageObject["bbox"],imageObject["predictedbbox"],imageObject["iou"])
+        # fig.colorbar(ax[ceil(i/ncols)-1, i%ncols].imshow()
         i= i +1
     
-    plt.show()
+    # plt.show()
 
 
 def calculateIou(tfnet):
@@ -87,6 +87,7 @@ def calculateIou(tfnet):
             iouObject["imgpath"] = imgpath
             iouObject["bbox"] = []
             iouObject["predictedbbox"] = []
+            iouObject["confidence"] = 0
             try:
                 for bbox in value[1][1][2]:
                     resulbbox = (results[0]["topleft"]["x"],results[0]["topleft"]["y"],results[0]["bottomright"]["x"],results[0]["bottomright"]["y"])
@@ -94,13 +95,89 @@ def calculateIou(tfnet):
                     iouObject["bbox"].append(bbox)
                     iouObject["predictedbbox"].append(resulbbox)
                     iouObject["iou"] = intIou
+                    iouObject["confidence"] = results[0]['confidence']
                 iou.append(iouObject)
             except Exception as e:
+                iouObject["imgpath"] = imgpath
+                iouObject["bbox"] = []
+                iouObject["predictedbbox"] = [None]
+                iouObject["confidence"] = 0
+                iouObject["iou"] = 0
+                for bbox in value[1][1][2]:
+                    iouObject["bbox"].append(bbox)
+                iou.append(iouObject)
                 print("No boundary box detected")
         except Exception as e:
+            iouObject["imgpath"] = imgpath
+            iouObject["bbox"] = []
+            iouObject["predictedbbox"] = [None]
+            iouObject["confidence"] = 0
+            iouObject["iou"] = 0
+            for bbox in value[1][1][2]:
+                iouObject["bbox"].append(bbox)
+            iou.append(iouObject)
             print(e)
             
     return iou
+
+
+def calculateParameters(ModelIou):
+    tp = 0
+    fp = 0
+    fn = 0
+    for i in range(0,len(newModelIou) - 1):
+        predictedbbox = ModelIou[i]["predictedbbox"]
+        bbox = ModelIou[i]["bbox"]
+        iou = ModelIou[i]["iou"]
+        confidence = ModelIou[i]["confidence"]
+        if predictedbbox[0] and bbox[0]:
+            if iou > 0.4 and confidence > 0.2:
+                tp = tp + 1
+            else:
+                fn = fn + 1
+        if not predictedbbox[0] and bbox[0]:
+            fn = fn +1
+        if predictedbbox[0] and not bbox[0]:
+            fp = fp + 1
+    try:
+        recall = (tp/(tp + fn))
+    except Exception as e:
+        recall = None
+        print(e)
+    try:
+        precision = (tp/(tp + fp))
+    except Exception as e:
+        precision = None
+        print(e)
+    
+    return recall,precision
+    
+
+def checkIouPercentage(newModelIou,oldModelIou):
+    changeinIou = []
+    newRecall,newPrecision = calculateParameters(newModelIou)
+    oldRecall,oldPrecision = calculateParameters(oldModelIou)
+    for i in range(0,len(newModelIou)):
+        newIou = newModelIou[i]["iou"]
+        oldIou = oldModelIou[i]["iou"]
+        try:
+            changeinIou.append(((newIou - oldIou)/oldIou) * 100)
+        except Exception as e:
+            if not oldIou or oldIou == 0:
+                changeinIou.append(100)
+            else:
+                print(e)
+
+    
+    changeiniouNumpy = np.array(changeinIou) 
+    histogramBin = [-80,-70,-60,-50,-40,-30,-20,-10,0,10,20,30,40,50,60,70,80,90,100]
+    hist,bins = np.histogram(changeiniouNumpy,bins = histogramBin ) 
+    plt.hist(changeiniouNumpy, bins = histogramBin) 
+    plt.title("histogram") 
+    plt.show()
+    print(newRecall,newPrecision)
+    print(oldRecall,oldPrecision)
+
 
 if len(sys.argv)>=1:
     if not os.listdir("ckpt"):
@@ -108,6 +185,8 @@ if len(sys.argv)>=1:
     iRange = 30
     iolessthan50Path = "Build/Iou50/"
     validationDataset = "Build/Validation/"
+    #confidenceThresold = 0.3
+    #iouThresold = 0.5
     try:
         os.listdir(iolessthan50Path)
     except Exception as e:
@@ -138,8 +217,8 @@ if len(sys.argv)>=1:
     
 
     options = {"model": "cfg/yolo_custom.cfg",
-               "pbLoad" : "built_graph/yolo_custom1.pb"  ,
-               "metaLoad": "built_graph/yolo_custom1.meta" ,
+               "pbLoad" : "built_graph/yolo_custom12750.pb"  ,
+               "metaLoad": "built_graph/yolo_custom12750.meta" ,
              "gpu": 0}
     tfnet = TFNet(options)
     oldModelIou = calculateIou(tfnet)
@@ -150,19 +229,16 @@ if len(sys.argv)>=1:
     tfnet = TFNet(options)
     newModelIou = calculateIou(tfnet)
     print(newModelIou)
-    plot(newModelIou)
-    
+    # plot(newModelIou)
+    checkIouPercentage(newModelIou,oldModelIou)
     # checkIouPercentage() - iou improvement over the previous ones
     #lp detected with confidence - images to be saved with confidence less thane .5
-    # drawImagesWithIOUlessthen50() - that is already saved in the iou folder
+    # saveImagesWithIOUlessthen50() - that is already saved in the iou folder
     # statistics plot for visualization
-    #   like - dataset involved, lp detected, confidence , iou, recall
-    # add false negative and false positive terms
+    #   like - dataset involved, lp detected, confidence , iou, recall,precision
+    # add false negative and false positive terms  - for this first the fix should have to be done on lp predicted result
     # if the model good than use this model to run the server
 else:
     print("provide valid arguments")
 
-# def checkIouPercentage(newModelIou,oldModelIou):
-    # for i in Range(0,len(newModelIou)):
-    #     newIou = newModelIou[i]["iou"]
-    #     oldIou = 
+
