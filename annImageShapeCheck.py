@@ -8,6 +8,9 @@ import xml.etree.ElementTree as ET
 def _pp(l): # pretty printing 
     for i in l: print('{}: {}'.format(i,l[i]))
 
+#ann - ann folder
+#pick - class name to be picked
+
 def pascal_voc_clean_xml(ANN, pick, exclusive = False):
     print('Parsing for {} {}'.format(
             pick, 'exclusively' * int(exclusive)))
@@ -75,15 +78,18 @@ def pascal_voc_clean_xml(ANN, pick, exclusive = False):
     print('Dataset size: {}'.format(len(dumps)))
 
     os.chdir(cur_dir)
+    #dumps is tupple(filename,image(width,height,class(className,xmin.ymin,xmax,ymax)))
     return dumps
 fileInAnnotationNotInImg = []
-for files in pascal_voc_clean_xml("custom_dataset1/images/ann",["licensePlate"]):
-    if os.path.exists("custom_dataset1/images/img/" + files[0].split(".")[0] + ".jpg"):
-        img = cv2.imread("custom_dataset1/images/img/" +files[0])
-        cv2.resize(img, (100,100))
-        print(img.shape)
 
-    else:
-        fileInAnnotationNotInImg.append(files[0])
-print(str(len(fileInAnnotationNotInImg)))
-print(fileInAnnotationNotInImg)
+# test for image reshape
+# for files in pascal_voc_clean_xml("custom_dataset1/images/ann",["licensePlate"]):
+#     if os.path.exists("custom_dataset1/images/img/" + files[0].split(".")[0] + ".jpg"):
+#         img = cv2.imread("custom_dataset1/images/img/" +files[0])
+#         cv2.resize(img, (100,100))
+#         print(img.shape)
+
+#     else:
+#         fileInAnnotationNotInImg.append(files[0])
+# print(str(len(fileInAnnotationNotInImg)))
+# print(fileInAnnotationNotInImg)

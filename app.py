@@ -8,6 +8,11 @@ import cv2
 import os,sys
 from zipfile import ZipFile
 from io import BytesIO
+# app logging
+from subprocess import Popen, PIPE
+import logging
+
+
 
 import pytesseract
 
@@ -205,7 +210,7 @@ def setYoloType():
                "load": -1,
 
                "gpu": 0}
-        model = "yoloV2"       
+        model = "yoloTinyV2"       
         
     else:
         with open("ckpt/checkpoint",'w') as fp:
@@ -214,7 +219,7 @@ def setYoloType():
                "load": -1,
 
                "gpu": 0}
-        model = "yoloTinyV2"   
+        model = "yoloV2"   
 
     tfnet = TFNet(options)
    
@@ -236,7 +241,11 @@ def uploadDataset():
 
 #Dataset Checker -  annImageShapeCheck.py
 #utility checket - annImgCheck.py
-
+@app.route("/getLogs",methods=['Get'])
+def getLogs():
+    with open("error.log",'r') as fp:
+        text = fp.read()
+    return text
 
 
 # model build functionality 
@@ -295,13 +304,13 @@ if __name__ == "__main__":
 
     if len(sys.argv)>=2:
         port = sys.argv[1]
-       
+    logging.basicConfig(filename='error.log',level=logging.DEBUG)
     # try:
     tfnet = TFNet(options)
     # tfnet1 = TFNet(options1)
     tfnet2 = tfnet
     from ocr_model import decode_batch,getOCRModel,getImageData
-    app.run(debug=False,host='localhost', port=port)
+    app.run(debug=False,host='localhost', port=port,threaded=True)
         
         
 
