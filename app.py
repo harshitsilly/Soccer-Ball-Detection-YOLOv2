@@ -211,31 +211,28 @@ def getProcessingtime():
     
 @app.route('/<shard>', methods=['Get'])
 def getshardFile(shard):
-    return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/kerasYoloV2/" + shard))
+    return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/YoloTiny/" + shard))
 
 
+ # with open("ckpt/checkpoint",'w') as fp:
+        #     fp.writelines(['model_checkpoint_path: "yolo_tiny-25750"\n','all_model_checkpoint_paths: "yolo_tiny-25750"'])
 
+        # options = {"model": "cfg/yolo_tiny.cfg",
+        #        "load": -1,
+
+        #        "gpu": 0}
 @app.route("/setYoloType",methods=['Post'])
 def setYoloType():
-    global tfnet2
+    global tfnet2,tfnet,tfnet1
     isYoloTiny= request.form['yoloTiny']
     if isYoloTiny=='X':
-        with open("ckpt/checkpoint",'w') as fp:
-            fp.writelines(['model_checkpoint_path: "yolo_tiny-25750"\n','all_model_checkpoint_paths: "yolo_tiny-25750"'])
-
-        options = {"model": "cfg/yolo_tiny.cfg",
-               "load": -1,
-
-               "gpu": 0}
+       
+        tfnet2 = tfnet1
         model = "yoloTinyV2"       
         
     else:
-        with open("ckpt/checkpoint",'w') as fp:
-            fp.writelines(['model_checkpoint_path: "yolo_custom-18750"\n','all_model_checkpoint_paths: "yolo_custom-18750"'])
-        options = {"model": "cfg/yolo_custom.cfg",
-               "load": -1,
-
-               "gpu": 0}
+        
+        tfnet2 = tfnet
         model = "yoloV2"   
 
     tfnet = TFNet(options)
@@ -266,16 +263,17 @@ def getLogs():
 
 @app.route("/getRejectedImageZip",methods=['Get'])
 def getRejectedImageZip():
-    # filename = os.path.join(os.getcwd() + "/" + 'RejectImages.zip')
+    filename = os.path.join(os.getcwd() + "/" + 'RejectImages.zip')
     # zipf = zipfile(filename, 'w', zipfile.ZIP_DEFLATED)
     rejectedFolderlist  =  os.listdir(os.path.join(os.getcwd() + "/Rejected Images"))
     zipData = BytesIO()
-    zipf = ZipFile(zipData, 'w', zf.ZIP_DEFLATED)
+    zipf = ZipFile(filename, 'w', zf.ZIP_DEFLATED)
     for file in rejectedFolderlist:
         if file != "" :
             fileName = file
             zipf.write(os.path.join(os.getcwd() + "/Rejected Images/")  + file,fileName)
-    return send_file(zipData,mimetype="application/zip")
+    zipf.close()
+    return send_file(filename)
                 # zipf.seek(0)
     # file.write("")
     # thread_a = Compute('RejectImages.zip')
@@ -329,10 +327,11 @@ if __name__ == "__main__":
 
 
 
-    # options = {"model": "cfg/yolo_custom.cfg",
-    #            "load": -1,
+    optionsYoloTiny = {"model": "cfg/yolo_tiny.cfg",
+               "pbLoad" : "built_graph/yolo_tiny.pb"  ,
+               "metaLoad": "built_graph/yolo_tiny.meta" ,
 
-    #            "gpu": 0}
+               "gpu": 0}
     options = {"model": "cfg/yolo_custom.cfg",
                "pbLoad" : "built_graph/yolo_custom.pb"  ,
                "metaLoad": "built_graph/yolo_custom.meta" ,
@@ -344,7 +343,7 @@ if __name__ == "__main__":
     logging.basicConfig(filename='error.log',level=logging.DEBUG)
     # try:
     tfnet = TFNet(options)
-    # tfnet1 = TFNet(options1)
+    tfnet1 = TFNet(optionsYoloTiny)
     tfnet2 = tfnet
     from ocr_model import decode_batch,getOCRModel,getImageData
     app.run(debug=False,host='localhost', port=port,threaded=True)
