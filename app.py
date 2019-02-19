@@ -17,7 +17,7 @@ import time
 
 
 
-import pytesseract
+# import pytesseract
 
 app = Flask(__name__)
 img1 = None
