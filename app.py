@@ -35,10 +35,10 @@ def boxing(original_img , predictions):
         confidence = result['confidence']
         label = result['label'] + " " + str(round(confidence, 3))
         
-        if confidence > 0.1:
+        if confidence > 0.7:
             newImage = cv2.rectangle(newImage, (top_x, top_y), (btm_x, btm_y), (255,0,0), 3)
             newImage = cv2.putText(newImage, label, (top_x, top_y-5), cv2.FONT_HERSHEY_COMPLEX_SMALL , 0.8, (0, 230, 0), 1, cv2.LINE_AA)
-        
+    
     return newImage
 
 
@@ -66,7 +66,7 @@ def processLicensePlateImage():
         confidence = result['confidence']
         label = result['label'] + " " + str(round(confidence, 3))
 
-        if confidence > 0.1:
+        if confidence > 0.7:
             newImage = newImage[top_y:btm_y, top_x:btm_x]
             # newImage = cv2.putText(newImage, label, (top_x, top_y-5), cv2.FONT_HERSHEY_COMPLEX_SMALL , 0.8, (0, 230, 0), 1, cv2.LINE_AA)
     text = getPredictedText(newImage)  
@@ -113,7 +113,8 @@ def getObjectBoundaryBox():
     img1 = Image.open(imageFile)
     frame = np.asarray(img1)
     results = tfnet2.return_predict(frame)
-  
+    for result in results:
+        result['confidence'] = str(result['confidence'])
     return jsonify(results)
 
 # convert rgb to gray
@@ -161,7 +162,7 @@ def saveLicensePlateImage(ifile,fileName,folderPath,isCrop):
                     confidence = result['confidence']
                     label = result['label'] + " " + str(round(confidence, 3))
 
-                    if confidence > 0.1:
+                    if confidence > 0.7:
                         newImage = newImage[top_y:btm_y, top_x:btm_x]
                        
         else:
@@ -209,9 +210,9 @@ def getProcessingtime():
     return str(total)
 
     
-@app.route('/<shard>', methods=['Get'])
-def getshardFile(shard):
-    return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/YoloTiny/" + shard))
+@app.route('/<folderPath>/<shard>', methods=['Get'])
+def getshardFile(folderPath,shard):
+    return send_file(os.path.join(os.getcwd() + "/built_graph/tfjs/"+ folderPath + "/" + shard))
 
 
  # with open("ckpt/checkpoint",'w') as fp:
@@ -224,20 +225,22 @@ def getshardFile(shard):
 @app.route("/setYoloType",methods=['Post'])
 def setYoloType():
     global tfnet2,tfnet,tfnet1
-    isYoloTiny= request.form['yoloTiny']
-    if isYoloTiny=='X':
+    isYolo= request.form['yolo']
+    if isYolo=='T':
        
         tfnet2 = tfnet1
-        model = "yoloTinyV2"       
-        
+        model = "yoloTinyV2"   
+
+    elif isYolo =='L':
+        tfnet2 = tfnet3
+        model = "yoloLiteV2"
+
     else:
         
         tfnet2 = tfnet
         model = "yoloV2"   
 
-    tfnet = TFNet(options)
-   
-    tfnet2 = tfnet
+    
     app.logger.info('Yolo {} sucessfully setted'.format(model))
     return "Yolo {} sucessfully setted".format(model)
 
@@ -319,9 +322,9 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000)) 
     # app.run(host="0.0.0.0",port=port) #run app in debug mode on port 5000
     # app.run(port=port)
-    with open("ckpt/checkpoint",'w') as fp:
-            fp.writelines(['model_checkpoint_path: "yolo_custom-18750"\n','all_model_checkpoint_paths: "yolo_custom-18750"'])
-    # options = {"model": "cfg/yolo_custom.cfg",
+    # with open("ckpt/checkpoint",'w') as fp:
+    #         fp.writelines(['model_checkpoint_path: "yolo_custom-18750"\n','all_model_checkpoint_paths: "yolo_custom-18750"'])
+    # options = {"model": "cfg/yolo_tiny.cfg",
     #         "load": -1,
     #         "gpu": 0}
 
@@ -337,14 +340,21 @@ if __name__ == "__main__":
                "metaLoad": "built_graph/yolo_custom.meta" ,
              "gpu": 0}
    
+    optionsYoloLite=  {"model": "cfg/yolo_lite.cfg",
+               "pbLoad" : "built_graph/yolo_lite.pb"  ,
+               "metaLoad": "built_graph/yolo_lite.meta" ,
 
+               "gpu": 0}
     if len(sys.argv)>=2:
         port = sys.argv[1]
-    logging.basicConfig(filename='error.log',level=logging.DEBUG)
+
+    
+    # logging.basicConfig(filename='error.log',level=logging.DEBUG)
     # try:
     tfnet = TFNet(options)
     tfnet1 = TFNet(optionsYoloTiny)
-    tfnet2 = tfnet
+    tfnet3 = TFNet(optionsYoloLite)
+    tfnet2 = tfnet3
     from ocr_model import decode_batch,getOCRModel,getImageData
     app.run(debug=False,host='localhost', port=port,threaded=True)
         
