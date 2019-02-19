@@ -13,7 +13,7 @@ script:
   - cd darkflow
   - python setup.py build_ext --inplace
   - pip install .
-  - cd../
+  - cd ../
   - python app.py
 
 deploy:
