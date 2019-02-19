@@ -65,4 +65,4 @@ tornado==4.3
 traitlets==4.0.0
 urllib3==1.22
 Werkzeug==0.14.1
-Flask==1.0.2
+flask==1.0.2
