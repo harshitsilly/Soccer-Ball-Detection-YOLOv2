@@ -14,6 +14,7 @@ script:
   - python setup.py build_ext --inplace
   - pip install .
   - cd ../
+  - sudo apt-get install libsm6 libxrender1 libfontconfig1
   - python app.py
 
 deploy:

@@ -66,3 +66,4 @@ traitlets==4.0.0
 urllib3==1.22
 Werkzeug==0.14.1
 flask==1.0.2
+opencv-python==4.0.0.21
