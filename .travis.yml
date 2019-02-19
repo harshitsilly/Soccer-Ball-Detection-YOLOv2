@@ -9,4 +9,8 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
+  - git clone https://github.com/thtrieu/darkflow
+  - cd darkflow
+  - python setup.py build_ext --inplace
+  - pip install .
   - python app.py
