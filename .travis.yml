@@ -15,8 +15,7 @@ script:
 - python app.py
 deploy:
   provider: gae
-  keyfile: YOUR SERVICE ACCOUNT JSON FILE
-  project: YOUR PROJECT ID
+  project: lpBackend
 before_install:
 - openssl aes-256-cbc -K $encrypted_a3d285ac981a_key -iv $encrypted_a3d285ac981a_iv
   -in gcp.json.enc -out gcp.json -d
