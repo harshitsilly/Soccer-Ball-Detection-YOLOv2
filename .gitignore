@@ -22,10 +22,11 @@
 /images
 /lpDataset1line
 /ckpt
-/built_graph
+# /built_graph
 /alphanumericDataset
 /bin
 /error.log
 /Build
 /images
 /imagessc
+/built_graph
