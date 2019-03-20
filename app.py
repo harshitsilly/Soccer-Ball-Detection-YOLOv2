@@ -18,7 +18,8 @@ import time
 
 
 # import pytesseract
-
+# default for yolo tiny
+confidence_thresold = 0.7
 app = Flask(__name__)
 img1 = None
 # this function is used to create boundary box across the detected object
@@ -35,7 +36,7 @@ def boxing(original_img , predictions):
         confidence = result['confidence']
         label = result['label'] + " " + str(round(confidence, 3))
         
-        if confidence > 0.7:
+        if confidence > confidence_thresold:
             newImage = cv2.rectangle(newImage, (top_x, top_y), (btm_x, btm_y), (255,0,0), 3)
             newImage = cv2.putText(newImage, label, (top_x, top_y-5), cv2.FONT_HERSHEY_COMPLEX_SMALL , 0.8, (0, 230, 0), 1, cv2.LINE_AA)
     
@@ -66,7 +67,7 @@ def processLicensePlateImage():
         confidence = result['confidence']
         label = result['label'] + " " + str(round(confidence, 3))
 
-        if confidence > 0.7:
+        if confidence > confidence_thresold:
             newImage = newImage[top_y:btm_y, top_x:btm_x]
             # newImage = cv2.putText(newImage, label, (top_x, top_y-5), cv2.FONT_HERSHEY_COMPLEX_SMALL , 0.8, (0, 230, 0), 1, cv2.LINE_AA)
     text = getPredictedText(newImage)  
@@ -128,7 +129,7 @@ def getPredictedText(img):
     net_inp = ocrModel.get_layer(name='the_input').input
     net_out = ocrModel.get_layer(name='softmax').output
     # img = rgb2gray(img)
-    img = np.resize(img,(64,128))
+    img = cv2.resize(image,(128,64))
     img = np.expand_dims(img, 0)
     img = img.T
     # X_data = [img]
@@ -162,7 +163,7 @@ def saveLicensePlateImage(ifile,fileName,folderPath,isCrop):
                     confidence = result['confidence']
                     label = result['label'] + " " + str(round(confidence, 3))
 
-                    if confidence > 0.7:
+                    if confidence > confidence_thresold:
                         newImage = newImage[top_y:btm_y, top_x:btm_x]
                        
         else:
@@ -224,19 +225,20 @@ def getshardFile(folderPath,shard):
         #        "gpu": 0}
 @app.route("/setYoloType",methods=['Post'])
 def setYoloType():
-    global tfnet2,tfnet,tfnet1
+    global tfnet2,tfnet,tfnet1,confidence_thresold
     isYolo= request.form['yolo']
     if isYolo=='T':
-       
+        confidence_thresold = 0.3
         tfnet2 = tfnet1
         model = "yoloTinyV2"   
 
     elif isYolo =='L':
+        confidence_thresold = 0.2
         tfnet2 = tfnet3
         model = "yoloLiteV2"
 
     else:
-        
+        confidence_thresold = 0.7
         tfnet2 = tfnet
         model = "yoloV2"   
 
@@ -356,7 +358,12 @@ if __name__ == "__main__":
     tfnet3 = TFNet(optionsYoloLite)
     tfnet2 = tfnet3
     from ocr_model import decode_batch,getOCRModel,getImageData
-    app.run(debug=False,host='localhost', port=port,threaded=True)
+    # app.run(debug=False,host='localhost', port=port,threaded=True)
+    if len(sys.argv)>=2:
+        app.run(debug=False,host='localhost', port=port,threaded=True)
+        # ssl_context='adhoc'
+    else:
+        app.run(debug=False,host='0.0.0.0', port=port,threaded=True)
         
         
 
