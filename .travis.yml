@@ -6,4 +6,4 @@ deploy:
   project: lpBackend
 before_install:
 - openssl aes-256-cbc -K $encrypted_52559f98c00a_key -iv $encrypted_52559f98c00a_iv
-  -in client-secret.json.enc -out client-secret.json -d
+  -in credentials.tar.gz.enc -out credentials.tar.gz -d
