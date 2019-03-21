@@ -1,6 +1,3 @@
-os:
-- linux
-language: python
 deploy:
   provider: gae
   project: lpBackend
